@@ -3,9 +3,13 @@ const validator = require("validator");
 
 const clothingItemSchema = new mongoose.Schema({
   name: { type: String, required: true, minlength: 2, maxlength: 30 },
-  avatar: {
+  weather: {
     type: String,
-    required: true,
+    required: true
+  },
+  imageUrl: {
+    type: String,
+    required: [true, "The clothing item field is required"],
     validate: {
       validator(value) {
         return validator.isURL(value);
@@ -15,4 +19,4 @@ const clothingItemSchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("item", clothingItemSchema);
+module.exports = mongoose.model("clothingitem", clothingItemSchema);
