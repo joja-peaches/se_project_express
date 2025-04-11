@@ -28,5 +28,5 @@ app.listen(PORT, () => {
 });
 
 module.exports.createClothingItem = (req, res) => {
-  console.log(req.user._id);
+  (req.user._id);
 };

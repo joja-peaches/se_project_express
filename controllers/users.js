@@ -6,19 +6,15 @@ const {
 } = require("../utils/errors");
 
 const getUsers = (req, res) => {
-  console.log("IN CONTROLLER");
   User.find({})
     .then((users) => {
       res.status(200).send(users);
     })
     .catch((err) => {
       console.error(err);
-      if (err.name === "DocumentNotFoundError") {
-        return res.status(NOT_FOUND_STATUS_CODE).send({ message: err.message });
-      }
       return res
         .status(DEFAULT_ERROR_STATUS_CODE)
-        .send({ message: err.message });
+        .send({ message: "An error has occurred on the server." });
     });
 };
 
@@ -34,12 +30,10 @@ const createUser = (req, res) => {
         return res
           .status(BAD_REQUEST_STATUS_CODE)
           .send({ message: err.message });
-      } else if (err.name === "DocumentNotFoundError") {
-        return res.status(NOT_FOUND_STATUS_CODE).send({ message: err.message });
       }
       return res
         .status(DEFAULT_ERROR_STATUS_CODE)
-        .send({ message: err.message });
+        .send({ message: "An error has occurred on the server." });
     });
 };
 
@@ -59,17 +53,14 @@ const getUser = (req, res) => {
       if (err.statusCode) {
         return res.status(err.statusCode).send({ message: err.message });
       }
-      
-      if (err.name === "DocumentNotFoundError") {
-        return res.status(NOT_FOUND_STATUS_CODE).send({ message: err.message });
-      } else if (err.name === "CastError") {
+      if (err.name === "CastError") {
         return res
           .status(BAD_REQUEST_STATUS_CODE)
           .send({ message: err.message });
       }
       return res
         .status(DEFAULT_ERROR_STATUS_CODE)
-        .send({ message: err.message });
+        .send({ message: "An error has occurred on the server." });
     });
 };
 
