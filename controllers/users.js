@@ -1,4 +1,9 @@
 const User = require("../models/user");
+const {
+  BAD_REQUEST_STATUS_CODE,
+  NOT_FOUND_STATUS_CODE,
+  DEFAULT_ERROR_STATUS_CODE,
+} = require("../utils/errors");
 
 const getUsers = (req, res) => {
   console.log("IN CONTROLLER");
@@ -8,7 +13,12 @@ const getUsers = (req, res) => {
     })
     .catch((err) => {
       console.error(err);
-      return res.status(500).send({ message: err.message });
+      if (err.name === "DocumentNotFoundError") {
+        return res.status(NOT_FOUND_STATUS_CODE).send({ message: err.message });
+      }
+      return res
+        .status(DEFAULT_ERROR_STATUS_CODE)
+        .send({ message: err.message });
     });
 };
 
@@ -20,29 +30,46 @@ const createUser = (req, res) => {
     })
     .catch((err) => {
       console.error(err);
-      console.log(err.name);
-      if (err.name == "ValidationError") {
-        return res.status(400).send({ message: err.message });
+      if (err.name === "ValidationError") {
+        return res
+          .status(BAD_REQUEST_STATUS_CODE)
+          .send({ message: err.message });
+      } else if (err.name === "DocumentNotFoundError") {
+        return res.status(NOT_FOUND_STATUS_CODE).send({ message: err.message });
       }
-      return res.status(500).send({ message: err.message });
+      return res
+        .status(DEFAULT_ERROR_STATUS_CODE)
+        .send({ message: err.message });
     });
 };
 
 const getUser = (req, res) => {
   const { userId } = req.params;
   User.findById(userId)
-    .orFail()
+    .orFail(() => {
+      const error = new Error("ID not found");
+      error.statusCode = NOT_FOUND_STATUS_CODE;
+      throw error;
+    })
     .then((user) => {
       res.status(200).send(user);
     })
     .catch((err) => {
       console.error(err);
-      if (err.name === "DocumentNotFoundError") {
-        return res.status(404).send({ message: err.message });
-      } else if (err.name === "CastError") {
-        return res.status(400).send({ message: err.message });
+      if (err.statusCode) {
+        return res.status(err.statusCode).send({ message: err.message });
       }
-      return res.status(500).send({ message: err.message });
+      
+      if (err.name === "DocumentNotFoundError") {
+        return res.status(NOT_FOUND_STATUS_CODE).send({ message: err.message });
+      } else if (err.name === "CastError") {
+        return res
+          .status(BAD_REQUEST_STATUS_CODE)
+          .send({ message: err.message });
+      }
+      return res
+        .status(DEFAULT_ERROR_STATUS_CODE)
+        .send({ message: err.message });
     });
 };
 

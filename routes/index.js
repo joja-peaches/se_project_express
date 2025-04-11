@@ -1,5 +1,4 @@
 const router = require("express").Router();
-
 const userRouter = require("./users");
 const clothingItemRouter = require("./clothingitems");
 
@@ -7,7 +6,7 @@ router.use("/users", userRouter);
 router.use("/items", clothingItemRouter);
 
 router.use((req, res) => {
-  res.status(500).send({message: err.message});
+  res.status(404).send({ "message": "Requested resource not found" });
 });
 
 module.exports = router;

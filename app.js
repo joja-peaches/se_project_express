@@ -13,8 +13,20 @@ mongoose
   .catch((e) => console.error(e));
 
 app.use(express.json());
+
+app.use((req, res, next) => {
+  req.user = {
+    _id: '67f3f89bf646d5a5c0f55593'
+  };
+  next();
+});
+
 app.use("/", mainRouter);
 
 app.listen(PORT, () => {
   console.log(`App listening at port ${PORT}`);
 });
+
+module.exports.createClothingItem = (req, res) => {
+  console.log(req.user._id);
+};
