@@ -1,5 +1,6 @@
 const express = require("express");
 const { default: mongoose } = require("mongoose");
+const cors = require("cors");
 const mainRouter = require("./routes/index");
 
 const app = express();
@@ -13,13 +14,13 @@ mongoose
   .catch((e) => console.error(e));
 
 app.use(express.json());
-
-app.use((req, res, next) => {
-  req.user = {
-    _id: '67f3f89bf646d5a5c0f55593'
-  };
-  next();
-});
+app.use(cors());
+// app.use((req, res, next) => {
+//   req.user = {
+//     _id: '67f3f89bf646d5a5c0f55593'
+//   };
+//   next();
+// });
 
 app.use("/", mainRouter);
 

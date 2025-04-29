@@ -1,9 +1,46 @@
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+
 const User = require("../models/user");
 const {
   BAD_REQUEST_STATUS_CODE,
   NOT_FOUND_STATUS_CODE,
   DEFAULT_ERROR_STATUS_CODE,
+  CONFLICT_ERROR_STATUS_CODE,
 } = require("../utils/errors");
+const { JWT_SECRET } = require("../utils/config");
+
+const createUser = (req, res) => {
+  const { name, email, password, avatar } = req.body;
+  bcrypt
+    .hash(password, 10)
+    .then((hash) => User.create({ name, email, password: hash, avatar }))
+    .then((user) => {
+      res.status(201).send({
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+      });
+    })
+    .catch((err) => {
+      console.log("Error details:", {
+        code: err.code,
+        name: err.name,
+        message: err.message,
+      });
+      console.error(err);
+      if (err.name === "ValidationError") {
+        return res
+          .status(BAD_REQUEST_STATUS_CODE)
+          .send({ message: err.message });
+      } else if (err.code === 11000) {
+        return res.status(CONFLICT_ERROR_STATUS_CODE).send({ message: "Email already exists" });
+      }
+      return res
+        .status(DEFAULT_ERROR_STATUS_CODE)
+        .send({ message: err.message });
+    });
+};
 
 const getUsers = (req, res) => {
   User.find({})
@@ -18,28 +55,62 @@ const getUsers = (req, res) => {
     });
 };
 
-const createUser = (req, res) => {
-  const { name, avatar } = req.body;
-  User.create({ name, avatar })
+const login = (req, res, next) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(BAD_REQUEST_STATUS_CODE).send({ message: "Email and password required" });
+  }
+  return User.findUserByCredentials(email, password)
     .then((user) => {
-      res.status(201).send(user);
+      const token = jwt.sign({ _id: user._id }, JWT_SECRET, {
+        expiresIn: "7d",
+      });
+      const { name, email, avatar, _id } = user;
+      res.send({ token, name, email, avatar, _id });
     })
     .catch((err) => {
-      console.error(err);
-      if (err.name === "ValidationError") {
+      if (err.name === "InvalidData") {
         return res
           .status(BAD_REQUEST_STATUS_CODE)
           .send({ message: err.message });
+      } else {
+        next(err);
       }
-      return res
-        .status(DEFAULT_ERROR_STATUS_CODE)
-        .send({ message: "An error has occurred on the server." });
     });
 };
 
-const getUser = (req, res) => {
-  const { userId } = req.params;
-  User.findById(userId)
+const updateProfile = (req, res, next) => {
+  const { avatar, name } = req.body;
+  User.findByIdAndUpdate(
+    req.user._id,
+    { avatar, name },
+    { new: true, runValidators: true }
+  )
+    .orFail()
+    .then((user) => {
+      res.send(user);
+    })
+    .catch((err) => {
+      if (err.name === "CastError") {
+        return res
+          .status(BAD_REQUEST_STATUS_CODE)
+          .send({ message: err.message });
+      } else if (err.name === "DocumentNotFoundError") {
+        return res.status(NOT_FOUND_STATUS_CODE).send({ message: err.message });
+      } else if (err.name === "ValidationError") {
+        return res
+          .status(BAD_REQUEST_STATUS_CODE)
+          .send({ message: err.message });
+      } else {
+        next(err);
+      }
+    });
+};
+
+const getCurrentUser = (req, res) => {
+  // const { userId } = req.params;
+  console.log(req.user._id);
+  User.findById(req.user._id)
     .orFail(() => {
       const error = new Error("ID not found");
       error.statusCode = NOT_FOUND_STATUS_CODE;
@@ -64,4 +135,10 @@ const getUser = (req, res) => {
     });
 };
 
-module.exports = { getUsers, createUser, getUser };
+module.exports = {
+  getUsers,
+  createUser,
+  login,
+  updateProfile,
+  getCurrentUser,
+};

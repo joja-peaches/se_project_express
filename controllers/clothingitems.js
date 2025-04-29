@@ -41,6 +41,9 @@ const deleteItem = (req, res) => {
   Item.findByIdAndDelete(req.params.itemId)
     .orFail()
     .then((item) => {
+      if (item.owner !== req.user._id) {
+        res.status(403).send({message: "Forbidden"});
+      }
       res.send(item);
     })
     .catch((err) => {
