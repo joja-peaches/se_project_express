@@ -10,36 +10,48 @@ const {
 } = require("../utils/errors");
 const { JWT_SECRET } = require("../utils/config");
 
-const createUser = (req, res) => {
+const createUser = (req, res, next) => {
   const { name, email, password, avatar } = req.body;
-  bcrypt
-    .hash(password, 10)
-    .then((hash) => User.create({ name, email, password: hash, avatar }))
-    .then((user) => {
-      res.status(201).send({
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar,
-      });
-    })
-    .catch((err) => {
-      console.log("Error details:", {
-        code: err.code,
-        name: err.name,
-        message: err.message,
-      });
-      console.error(err);
-      if (err.name === "ValidationError") {
-        return res
-          .status(BAD_REQUEST_STATUS_CODE)
-          .send({ message: err.message });
-      } else if (err.code === 11000) {
-        return res.status(CONFLICT_ERROR_STATUS_CODE).send({ message: "Email already exists" });
-      }
+  if (!email || !password) {
+    return res
+      .status(BAD_REQUEST_STATUS_CODE)
+      .send({ message: "Email and password required" });
+  }
+  User.findOne({ email }).then((existingUser) => {
+    if (existingUser) {
       return res
-        .status(DEFAULT_ERROR_STATUS_CODE)
-        .send({ message: err.message });
-    });
+        .status(CONFLICT_ERROR_STATUS_CODE)
+        .send({ message: "Email already exists" });
+    }
+    bcrypt
+      .hash(password, 10)
+      .then((hash) => User.create({ name, email, password: hash, avatar }))
+      .then((user) => {
+        res.status(201).send({
+          name: user.name,
+          email: user.email,
+          avatar: user.avatar,
+        });
+      })
+      .catch((err) => {
+        console.log("Error details:", {
+          code: err.code,
+          name: err.name,
+          message: err.message,
+        });
+        if (err.name === "ValidationError") {
+          return res
+            .status(BAD_REQUEST_STATUS_CODE)
+            .send({ message: err.message });
+        } else if (err.code === 11000) {
+          return res
+            .status(CONFLICT_ERROR_STATUS_CODE)
+            .send({ message: "Email already exists" });
+        } else {
+          next(err);
+        }
+      });
+  });
 };
 
 const getUsers = (req, res) => {
@@ -58,21 +70,20 @@ const getUsers = (req, res) => {
 const login = (req, res, next) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    return res.status(BAD_REQUEST_STATUS_CODE).send({ message: "Email and password required" });
+    return res
+      .status(BAD_REQUEST_STATUS_CODE)
+      .send({ message: "Email and password required" });
   }
   return User.findUserByCredentials(email, password)
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, JWT_SECRET, {
         expiresIn: "7d",
       });
-      const { name, email, avatar, _id } = user;
-      res.send({ token, name, email, avatar, _id });
+      res.status(200).send({ token });
     })
     .catch((err) => {
-      if (err.name === "InvalidData") {
-        return res
-          .status(BAD_REQUEST_STATUS_CODE)
-          .send({ message: err.message });
+      if (err.name === "InvalidDataError") {
+        return res.status(err.status).send({ message: err.message });
       } else {
         next(err);
       }

@@ -41,16 +41,18 @@ const deleteItem = (req, res) => {
   Item.findByIdAndDelete(req.params.itemId)
     .orFail()
     .then((item) => {
-      if (item.owner !== req.user._id) {
-        res.status(403).send({message: "Forbidden"});
+      if (!item.owner.equals(req.user._id)) {
+        res.status(403).send({ message: "Forbidden" });
+      } else {
+        res.send(item);
       }
-      res.send(item);
     })
     .catch((err) => {
       console.error(err);
       if (err.name === "DocumentNotFoundError") {
         return res.status(NOT_FOUND_STATUS_CODE).send({ message: err.message });
-      } if (err.name === "CastError") {
+      }
+      if (err.name === "CastError") {
         return res
           .status(BAD_REQUEST_STATUS_CODE)
           .send({ message: err.message });
@@ -73,7 +75,8 @@ const likeItem = (req, res) => {
       console.error(err);
       if (err.name === "DocumentNotFoundError") {
         return res.status(NOT_FOUND_STATUS_CODE).send({ message: err.message });
-      } if (err.name === "CastError") {
+      }
+      if (err.name === "CastError") {
         return res
           .status(BAD_REQUEST_STATUS_CODE)
           .send({ message: err.message });
@@ -85,7 +88,11 @@ const likeItem = (req, res) => {
 };
 
 const unlikeItem = (req, res) => {
-  Item.findByIdAndUpdate(req.params.itemId, { $pull: {likes: req.user._id} }, { new: true })
+  Item.findByIdAndUpdate(
+    req.params.itemId,
+    { $pull: { likes: req.user._id } },
+    { new: true }
+  )
     .orFail(() => {
       const error = new Error("ID not found");
       error.statusCode = NOT_FOUND_STATUS_CODE;
@@ -97,7 +104,7 @@ const unlikeItem = (req, res) => {
       if (err.statusCode) {
         return res.status(err.statusCode).send({ message: err.message });
       }
-     if (err.name === "CastError") {
+      if (err.name === "CastError") {
         return res
           .status(BAD_REQUEST_STATUS_CODE)
           .send({ message: err.message });

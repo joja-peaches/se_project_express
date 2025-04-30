@@ -5,7 +5,7 @@ const { UNAUTHORIZED_ERROR_STATUS_CODE } = require("../utils/errors");
 const auth = (req, res, next) => {
   const { authorization } = req.headers;
 
-  if (!authorization || !authorization.startsWith("Bearer")) {
+  if (!authorization || !authorization.startsWith("Bearer ")) {
     return res.status(UNAUTHORIZED_ERROR_STATUS_CODE).send({ message: "Authorization required" });
   }
 
@@ -21,7 +21,7 @@ const auth = (req, res, next) => {
   }
 
   req.user = payload;
-  next();
+  return next();
 };
 
 module.exports = auth;
