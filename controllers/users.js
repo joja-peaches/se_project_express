@@ -17,13 +17,13 @@ const createUser = (req, res, next) => {
       .status(BAD_REQUEST_STATUS_CODE)
       .send({ message: "Email and password required" });
   }
-  User.findOne({ email }).then((existingUser) => {
+  return User.findOne({ email }).then((existingUser) => {
     if (existingUser) {
       return res
         .status(CONFLICT_ERROR_STATUS_CODE)
         .send({ message: "Email already exists" });
     }
-    bcrypt
+    return bcrypt
       .hash(password, 10)
       .then((hash) => User.create({ name, email, password: hash, avatar }))
       .then((user) => {
@@ -34,37 +34,19 @@ const createUser = (req, res, next) => {
         });
       })
       .catch((err) => {
-        console.log("Error details:", {
-          code: err.code,
-          name: err.name,
-          message: err.message,
-        });
         if (err.name === "ValidationError") {
           return res
             .status(BAD_REQUEST_STATUS_CODE)
             .send({ message: err.message });
-        } else if (err.code === 11000) {
+        }
+        if (err.code === 11000) {
           return res
             .status(CONFLICT_ERROR_STATUS_CODE)
             .send({ message: "Email already exists" });
-        } else {
-          next(err);
         }
+        return next(err);
       });
   });
-};
-
-const getUsers = (req, res) => {
-  User.find({})
-    .then((users) => {
-      res.status(200).send(users);
-    })
-    .catch((err) => {
-      console.error(err);
-      return res
-        .status(DEFAULT_ERROR_STATUS_CODE)
-        .send({ message: "An error has occurred on the server." });
-    });
 };
 
 const login = (req, res, next) => {
@@ -79,18 +61,17 @@ const login = (req, res, next) => {
       const token = jwt.sign({ _id: user._id }, JWT_SECRET, {
         expiresIn: "7d",
       });
-      res.status(200).send({ token });
+      return res.status(200).send({ token });
     })
     .catch((err) => {
       if (err.name === "InvalidDataError") {
         return res.status(err.status).send({ message: err.message });
-      } else {
-        next(err);
       }
+      return next(err);
     });
 };
 
-const updateProfile = (req, res, next) => {
+const updateProfile = (req, res) => {
   const { avatar, name } = req.body;
   User.findByIdAndUpdate(
     req.user._id,
@@ -106,21 +87,22 @@ const updateProfile = (req, res, next) => {
         return res
           .status(BAD_REQUEST_STATUS_CODE)
           .send({ message: err.message });
-      } else if (err.name === "DocumentNotFoundError") {
+      }
+      if (err.name === "DocumentNotFoundError") {
         return res.status(NOT_FOUND_STATUS_CODE).send({ message: err.message });
-      } else if (err.name === "ValidationError") {
+      }
+      if (err.name === "ValidationError") {
         return res
           .status(BAD_REQUEST_STATUS_CODE)
           .send({ message: err.message });
-      } else {
-        next(err);
       }
+      return res
+        .status(DEFAULT_ERROR_STATUS_CODE)
+        .send({ message: err.message });
     });
 };
 
 const getCurrentUser = (req, res) => {
-  // const { userId } = req.params;
-  console.log(req.user._id);
   User.findById(req.user._id)
     .orFail(() => {
       const error = new Error("ID not found");
@@ -131,7 +113,6 @@ const getCurrentUser = (req, res) => {
       res.status(200).send(user);
     })
     .catch((err) => {
-      console.error(err);
       if (err.statusCode) {
         return res.status(err.statusCode).send({ message: err.message });
       }
@@ -147,7 +128,6 @@ const getCurrentUser = (req, res) => {
 };
 
 module.exports = {
-  getUsers,
   createUser,
   login,
   updateProfile,

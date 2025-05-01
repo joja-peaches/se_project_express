@@ -3,6 +3,7 @@ const {
   BAD_REQUEST_STATUS_CODE,
   NOT_FOUND_STATUS_CODE,
   DEFAULT_ERROR_STATUS_CODE,
+  FORBIDDEN_STATUS_CODE,
 } = require("../utils/errors");
 
 const getItems = (req, res) => {
@@ -11,10 +12,7 @@ const getItems = (req, res) => {
       res.status(200).send(items);
     })
     .catch((err) => {
-      console.error(err);
-      return res
-        .status(DEFAULT_ERROR_STATUS_CODE)
-        .send({ message: "An error has occurred on the server." });
+      res.status(DEFAULT_ERROR_STATUS_CODE).send({ message: err.message });
     });
 };
 
@@ -25,7 +23,6 @@ const createItem = (req, res) => {
       res.status(201).send({ data: item });
     })
     .catch((err) => {
-      console.error(err);
       if (err.name === "ValidationError") {
         return res
           .status(BAD_REQUEST_STATUS_CODE)
@@ -38,17 +35,24 @@ const createItem = (req, res) => {
 };
 
 const deleteItem = (req, res) => {
-  Item.findByIdAndDelete(req.params.itemId)
+  Item.findById(req.params.itemId)
     .orFail()
     .then((item) => {
       if (!item.owner.equals(req.user._id)) {
-        res.status(403).send({ message: "Forbidden" });
-      } else {
-        res.send(item);
+        throw new Error("Forbidden");
       }
+      return Item.findByIdAndDelete(req.params.itemId).exec();
+    })
+    .then((deletedItem) => {
+      if (!deletedItem) {
+        throw new Error("Item not deleted");
+      }
+      res.send({ message: "Item deleted" });
     })
     .catch((err) => {
-      console.error(err);
+      if (err.message === "Forbidden") {
+        return res.status(FORBIDDEN_STATUS_CODE).send({ message: "Forbidden" });
+      }
       if (err.name === "DocumentNotFoundError") {
         return res.status(NOT_FOUND_STATUS_CODE).send({ message: err.message });
       }
@@ -72,7 +76,6 @@ const likeItem = (req, res) => {
     .orFail()
     .then((item) => res.status(201).send(item))
     .catch((err) => {
-      console.error(err);
       if (err.name === "DocumentNotFoundError") {
         return res.status(NOT_FOUND_STATUS_CODE).send({ message: err.message });
       }
@@ -100,7 +103,6 @@ const unlikeItem = (req, res) => {
     })
     .then((item) => res.send(item))
     .catch((err) => {
-      console.error(err);
       if (err.statusCode) {
         return res.status(err.statusCode).send({ message: err.message });
       }
