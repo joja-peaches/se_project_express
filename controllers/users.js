@@ -10,7 +10,7 @@ const {
 } = require("../utils/errors");
 const { JWT_SECRET } = require("../utils/config");
 
-const createUser = (req, res, next) => {
+const createUser = (req, res) => {
   const { name, email, password, avatar } = req.body;
   if (!email || !password) {
     return res
@@ -44,12 +44,14 @@ const createUser = (req, res, next) => {
             .status(CONFLICT_ERROR_STATUS_CODE)
             .send({ message: "Email already exists" });
         }
-        return next(err);
+        return res
+        .status(DEFAULT_ERROR_STATUS_CODE)
+        .send({ message: err.message });
       });
   });
 };
 
-const login = (req, res, next) => {
+const login = (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res
@@ -67,7 +69,9 @@ const login = (req, res, next) => {
       if (err.name === "InvalidDataError") {
         return res.status(err.status).send({ message: err.message });
       }
-      return next(err);
+      return res
+        .status(DEFAULT_ERROR_STATUS_CODE)
+        .send({ message: err.message });
     });
 };
 
