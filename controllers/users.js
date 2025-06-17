@@ -7,7 +7,7 @@ const {
   NOT_FOUND_STATUS_CODE,
   DEFAULT_ERROR_STATUS_CODE,
   CONFLICT_ERROR_STATUS_CODE,
-} = require("../utils/errors");
+} = require("../utils/errors/errors");
 const { JWT_SECRET } = require("../utils/config");
 
 const createUser = (req, res) => {
@@ -67,6 +67,9 @@ const login = (req, res) => {
     })
     .catch((err) => {
       if (err.name === "InvalidDataError") {
+        return res.status(err.status).send({ message: err.message });
+      }
+      if (err.name === "NotFoundDataError") {
         return res.status(err.status).send({ message: err.message });
       }
       return res

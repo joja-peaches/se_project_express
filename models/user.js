@@ -1,10 +1,11 @@
 const bcrypt = require("bcrypt");
 const mongoose = require("mongoose");
 const validator = require("validator");
-const { InvalidDataError } = require("../utils/errors");
+const { NotFoundDataError } = require("../utils/errors/notFoundDataError");
+const { InvalidDataError } = require("../utils/errors/invalidDataError");
 
 const userSchema = new mongoose.Schema({
-  name: { type: String, required: true, minlength: 2, maxlength: 30 },
+  name: { type: String, required: true, minlength: 2, maxlength: 40 },
 
   email: {
     type: String,
@@ -45,7 +46,7 @@ userSchema.statics.findUserByCredentials = function findUserByCredentials(
     .then((user) => {
       if (!user) {
         return Promise.reject(
-          new InvalidDataError("Incorrect email or password")
+          new NotFoundDataError("Email not registered")
         );
       }
       return bcrypt.compare(password, user.password).then((matched) => {
