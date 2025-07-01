@@ -1,15 +1,16 @@
 const Item = require("../models/clothingitem");
-// working branch
+
 const { BadRequestError } = require("../utils/errors/badRequestError");
 const { ForbiddenError } = require("../utils/errors/forbiddenError");
 const { DefaultError } = require("../utils/errors/defaultError");
+const { NotFoundDataError } = require("../utils/errors/notFoundDataError");
 
 const getItems = (req, res, next) => {
   Item.find({})
     .then((items) => {
       res.status(200).send(items);
     })
-    .catch((err) => {
+    .catch(() => {
       next(new DefaultError("An error has occurred on the server."));
     });
 };
@@ -45,12 +46,12 @@ const deleteItem = (req, res, next) => {
       res.send({ message: "Item deleted" });
     })
     .catch((err) => {
-      if (err.name === "Forbidden") {
+      if (err.message === "Forbidden") {
         next(
           new ForbiddenError("You do not have permission to delete this item.")
         );
       } else if (err.name === "DocumentNotFoundError") {
-        next(new NotFoundError("Item not found"));
+        next(new NotFoundDataError("Item not found"));
       } else if (err.name === "CastError") {
         next(new BadRequestError("Invalid item ID"));
       } else {
@@ -69,7 +70,7 @@ const likeItem = (req, res, next) => {
     .then((item) => res.status(201).send(item))
     .catch((err) => {
       if (err.name === "DocumentNotFoundError") {
-        next(new NotFoundError("Item not found"));
+        next(new NotFoundDataError("Item not found"));
       } else if (err.name === "CastError") {
         next(new BadRequestError("Invalid item ID"));
       } else {
@@ -85,14 +86,14 @@ const unlikeItem = (req, res, next) => {
     { new: true }
   )
     .orFail(() => {
-      throw new NotFoundError("Item not found");
+      throw new NotFoundDataError("Item not found");
     })
     .then((item) => res.send(item))
     .catch((err) => {
       if (err.name === "CastError") {
         next(new BadRequestError("Invalid item ID"));
       } else {
-        next(new DefaultError("An error has occurred on the server."));
+        next(err);
       }
     });
 };

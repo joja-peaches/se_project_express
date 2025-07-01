@@ -6,5 +6,6 @@ Tech stack: JavaScript, React, Node.js, Express
 
 `npm run dev` — to launch the server with the hot reload feature
 
-### Testing
-Before committing your code, make sure you edit the file `sprint.txt` in the root folder. The file `sprint.txt` should contain the number of the sprint you're currently working on. For ex. 12
+Live page [here](https://gorgo.blinklab.com)
+
+Backend code [here](https://github.com/joja-peaches/se_project_express)
