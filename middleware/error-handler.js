@@ -1,10 +1,11 @@
-const { DefaultError } = require("../utils/errors/defaultError");
+const { DEFAULT_ERROR_STATUS_CODE } = require("../utils/errors/errors");
 
 const errorHandler = (err, req, res, next) => {
   if (err.status) {
     return res.status(err.status).send({ message: err.message });
   }
-  return next(new DefaultError("An error has occurred on the server."));
+  return res
+    .status(DEFAULT_ERROR_STATUS_CODE)
+    .send({ message: "An error has occurred on the server." });
 };
-
 module.exports = { errorHandler };
